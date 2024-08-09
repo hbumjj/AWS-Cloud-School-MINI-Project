@@ -15,11 +15,12 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                             FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        // Redirect authenticated users to a different page
+        // Call the parent class's successfulAuthentication to ensure proper handling
+        super.successfulAuthentication(request, response, chain, authResult);
+
+        // Redirect to a page for authenticated users
         if (authResult.isAuthenticated()) {
-            response.sendRedirect("/home"); // Redirect to a page for authenticated users
-        } else {
-            super.successfulAuthentication(request, response, chain, authResult);
+            response.sendRedirect("/home"); // Redirect to /home after successful login
         }
     }
 }
