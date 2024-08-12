@@ -27,7 +27,7 @@ public class BoardController {
     public ResponseEntity<Map<String, Object>> getAll() {
         Map<String, Object> response = new HashMap<>();
         response.put("data", boardService.getAll());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping
@@ -52,6 +52,22 @@ public class BoardController {
         boardService.deleteBoard(bIdx);
         Map<String, Object> response = new HashMap<>();
         response.put("data", "Board item deleted successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{bIdx}/like")
+    public ResponseEntity<Map<String, Object>> likeBoard(@PathVariable int bIdx) {
+        Board likedBoard = boardService.likeBoard(bIdx);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", likedBoard);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{bIdx}/dislike")
+    public ResponseEntity<Map<String, Object>> dislikeBoard(@PathVariable int bIdx) {
+        Board dislikedBoard = boardService.dislikeBoard(bIdx);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", dislikedBoard);
         return ResponseEntity.ok(response);
     }
 }

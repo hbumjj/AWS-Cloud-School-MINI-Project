@@ -2,179 +2,93 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Container, Header, Button } from '@cloudscape-design/components';
 import Board from "@cloudscape-design/board-components/board";
 import BoardItem from "@cloudscape-design/board-components/board-item";
-import NewItemForm from './NewItemForm';
-import UpdateItemForm from './UpdateItemForm';
-import { fetchBoardItems, createBoardItem, updateBoardItem, deleteBoardItem } from '../api/board';
+import CommentSection from './CommentSection';
+import { fetchBoardItems, likeItem, dislikeItem, deleteBoardItem, addComment } from '../api/board';
 
-function BoardContainer() {
+function BoardContainer({ updatePopularPosts }) {
   const [items, setItems] = useState([]);
-  const [isFormVisible, setIsFormVisible] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [currentUser, setCurrentUser] = useState('');
 
   useEffect(() => {
     const loadItems = async () => {
-      try {
-        const response = await fetchBoardItems();
-        if (Array.isArray(response)) {
-          setItems(response);
-        } else {
-          console.error('Unexpected response format:', response);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
+      const fetchedItems = await fetchBoardItems();
+      setItems(fetchedItems);
     };
     loadItems();
+
+    // 현재 사용자 정보 가져오기
+    const user = localStorage.getItem('currentUser');
+    setCurrentUser(user ? JSON.parse(user).username : '');
   }, []);
 
-  const handleCreate = useCallback(async (newItem) => {
+  const handleLike = useCallback(async (itemId) => {
     try {
-      const response = await createBoardItem(newItem);
-      const createdItem = { ...newItem, ...response }; // Adjust based on actual API response
-      setItems(prevItems => [...prevItems, createdItem]);
-      setIsFormVisible(false);
-    } catch (error) {
-      console.error('Error creating item:', error);
-    }
-  }, []);
-
-  const handleUpdate = useCallback(async (item) => {
-    try {
-      if (!item.bidx) {
-        console.error('Item ID (bidx) is missing.');
-        return;
-      }
-
-      const response = await updateBoardItem(item);
-      const updatedItem = response.data.data; // Assume response contains the updated item
-
+      const response = await likeItem(itemId);
       setItems(prevItems =>
-        prevItems.map(i => i.bidx === item.bidx ? updatedItem : i)
+        prevItems.map(item =>
+          item.bidx === itemId ? { ...item, likes: response.data.likes } : item
+        )
       );
-      setIsFormVisible(false);
-      setIsEditing(false);
-      setEditItem(null);
+      updatePopularPosts();
     } catch (error) {
-      console.error('Error updating item:', error);
+      console.error('Error liking item:', error);
     }
-  }, []);
+  }, [updatePopularPosts]);
 
-  const handleDelete = useCallback(async (bidx) => {
+  const handleDislike = useCallback(async (itemId) => {
     try {
-      await deleteBoardItem(bidx);
+      const response = await dislikeItem(itemId);
       setItems(prevItems =>
-        prevItems.filter(item => item.bidx !== bidx)
+        prevItems.map(item =>
+          item.bidx === itemId ? { ...item, dislikes: response.data.dislikes } : item
+        )
       );
+      updatePopularPosts();
+    } catch (error) {
+      console.error('Error disliking item:', error);
+    }
+  }, [updatePopularPosts]);
+
+  const handleDelete = useCallback(async (itemId) => {
+    try {
+      await deleteBoardItem(itemId);
+      setItems(prevItems => prevItems.filter(item => item.bidx !== itemId));
+      updatePopularPosts();
     } catch (error) {
       console.error('Error deleting item:', error);
     }
+  }, [updatePopularPosts]);
+
+  const handleAddComment = useCallback(async (itemId, content) => {
+    try {
+      const response = await addComment(itemId, content, currentUser);
+      setItems(prevItems =>
+        prevItems.map(item =>
+          item.bidx === itemId ? { ...item, comments: [...(item.comments || []), response.data] } : item
+        )
+      );
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  }, [currentUser]);
+
+  const handleDeleteComment = useCallback(async (itemId, commentId) => {
+    // 백엔드 API가 구현되면 여기에 댓글 삭제 로직을 추가하세요
+    console.log('Delete comment', itemId, commentId);
   }, []);
 
-  const handleItemsChange = (event) => {
-    const updatedItems = event.detail.items;
-    setItems(updatedItems);
-
-    updatedItems.forEach(item => {
-      if (!item.bidx) {
-        handleCreate({ ...item, rowSpan: 1, columnSpan: 2 });
-      } else {
-        handleUpdate(item);
-      }
-    });
-  };
-
   const i18nStrings = {
-    liveAnnouncementDndStarted: operationType =>
-      operationType === "resize" ? "Resizing" : "Dragging",
-    liveAnnouncementDndItemReordered: operation => {
-      const columns = `column ${operation.placement.x + 1}`;
-      const rows = `row ${operation.placement.y + 1}`;
-      return createAnnouncement(
-        `Item moved to ${operation.direction === "horizontal" ? columns : rows}.`,
-        operation.conflicts,
-        operation.disturbed
-      );
-    },
-    liveAnnouncementDndItemResized: operation => {
-      const columnsConstraint = operation.isMinimalColumnsReached ? " (minimal)" : "";
-      const rowsConstraint = operation.isMinimalRowsReached ? " (minimal)" : "";
-      const sizeAnnouncement =
-        operation.direction === "horizontal"
-          ? `columns ${operation.placement.width}${columnsConstraint}`
-          : `rows ${operation.placement.height}${rowsConstraint}`;
-      return createAnnouncement(
-        `Item resized to ${sizeAnnouncement}.`,
-        operation.conflicts,
-        operation.disturbed
-      );
-    },
-    liveAnnouncementDndItemInserted: operation => {
-      const columns = `column ${operation.placement.x + 1}`;
-      const rows = `row ${operation.placement.y + 1}`;
-      return createAnnouncement(
-        `Item inserted to ${columns}, ${rows}.`,
-        operation.conflicts,
-        operation.disturbed
-      );
-    },
-    liveAnnouncementDndCommitted: operationType => `${operationType} committed`,
-    liveAnnouncementDndDiscarded: operationType => `${operationType} discarded`,
-    liveAnnouncementItemRemoved: op =>
-      createAnnouncement(
-        `Removed item ${op.item.title || 'No Title'}.`,
-        [],
-        op.disturbed
-      ),
-    navigationAriaLabel: "Board navigation",
-    navigationAriaDescription: "Click on non-empty item to move focus over",
-    navigationItemAriaLabel: item => item ? item.title : "Empty"
+    // 필요한 i18n 문자열을 여기에 추가하세요
   };
-
-  function createAnnouncement(operationAnnouncement, conflicts, disturbed) {
-    const conflictsAnnouncement =
-      conflicts.length > 0
-        ? `Conflicts with ${conflicts.map(c => c.title).join(", ")}.`
-        : "";
-    const disturbedAnnouncement =
-      disturbed.length > 0
-        ? `Disturbed ${disturbed.length} items.`
-        : "";
-    return [operationAnnouncement, conflictsAnnouncement, disturbedAnnouncement]
-      .filter(Boolean)
-      .join(" ");
-  }
 
   return (
     <Container
       header={
-        <Header variant="h2" description="Container description">
-          Container header
-          <Button onClick={() => { setIsFormVisible(true); setEditItem(null); }}>Add Item</Button>
+        <Header variant="h2" description="게시판">
+          게시판
         </Header>
       }
     >
-      {isFormVisible && (
-        isEditing ? (
-          <UpdateItemForm
-            initialData={editItem}
-            onCancel={() => {
-              setIsFormVisible(false);
-              setEditItem(null);
-              setIsEditing(false);
-            }}
-            onSubmit={(title, content) => handleUpdate({ ...editItem, title, content })}
-          />
-        ) : (
-          <NewItemForm
-            onCancel={() => {
-              setIsFormVisible(false);
-              setEditItem(null);
-            }}
-            onSubmit={(title, content) => handleCreate({ rowSpan: 1, columnSpan: 2, title, content })}
-          />
-        )
-      )}
       <Board
         renderItem={item => (
           <BoardItem
@@ -184,19 +98,27 @@ function BoardContainer() {
           >
             <div>
               {item.content || 'No Content'}
-              <Button onClick={() => {
-                setEditItem(item);
-                setIsFormVisible(true);
-                setIsEditing(true);
-              }}>
-                Edit
-              </Button>
-              <Button onClick={() => handleDelete(item.bidx)}>Delete</Button>
+              {currentUser === item.username && (
+                <>
+                  <Button onClick={() => handleDelete(item.bidx)}>Delete</Button>
+                </>
+              )}
+              <CommentSection
+                comments={item.comments || []}
+                onAddComment={(content) => handleAddComment(item.bidx, content)}
+                onDeleteComment={(commentId) => handleDeleteComment(item.bidx, commentId)}
+                currentUser={currentUser}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
+                <Button onClick={() => handleLike(item.bidx)} variant="icon" iconName="thumbs-up-filled" />
+                <span>{item.likes || 0}</span>
+                <Button onClick={() => handleDislike(item.bidx)} variant="icon" iconName="thumbs-down-filled" />
+                <span>{item.dislikes || 0}</span>
+              </div>
             </div>
           </BoardItem>
         )}
-        onItemsChange={handleItemsChange}
-        items={items} // Directly use items as an array
+        items={items}
         i18nStrings={i18nStrings}
       />
     </Container>

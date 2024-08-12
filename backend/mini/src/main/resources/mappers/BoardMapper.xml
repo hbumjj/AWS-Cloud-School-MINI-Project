@@ -2,8 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.amazoonS3.mini.mapper.BoardMapper">
 
-    <select id="getAll" resultType="Board">
-        SELECT * FROM board
+    <select id="getAll" resultType="com.amazoonS3.mini.model.Board">
+        SELECT b_idx, row_span, column_span, title, content, reg_date
+        FROM board
+        ORDER BY b_idx DESC
     </select>
 
     <insert id="insertBoard" useGeneratedKeys="true" keyProperty="bIdx">
@@ -20,12 +22,14 @@
         WHERE b_idx = #{bIdx}
     </update>
 
-    <select id="getBoardById" resultType="Board">
-        SELECT * FROM board WHERE b_idx = #{bIdx}
+    <select id="getBoardById" resultType="com.amazoonS3.mini.model.Board">
+        SELECT b_idx, row_span, column_span, title, content, reg_date
+        FROM board
+        WHERE b_idx = #{bIdx}
     </select>
 
     <delete id="deleteBoard">
-        DELETE FROM board WHERE b_idx=#{bIdx}
+        DELETE FROM board WHERE b_idx = #{bIdx}
     </delete>
 
 </mapper>

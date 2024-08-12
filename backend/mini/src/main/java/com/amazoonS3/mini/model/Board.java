@@ -1,5 +1,8 @@
 package com.amazoonS3.mini.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Board {
 
     private int bIdx;
@@ -7,6 +10,9 @@ public class Board {
     private int columnSpan;
     private String title;
     private String content;
+    private List<Comment> comments = new ArrayList<>();
+    private int likes;
+    private int dislikes;
 
     public int getBIdx() {
         return this.bIdx;
@@ -48,4 +54,35 @@ public class Board {
         this.content = content;
     }
 
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
+    }
+
+    public void addComment(Comment comment) {
+        this.comments.add(comment);
+    }
+
+    public void removeComment(Comment comment) {
+        this.comments.remove(comment);
+    }
+
+    public int getLikes() {
+        return likes;
+    }
+
+    public void setLikes(int likes) {
+        this.likes = likes;
+    }
+
+    public int getDislikes() {
+        return dislikes;
+    }
+
+    public void setDislikes(int dislikes) {
+        this.dislikes = dislikes;
+    }
 }

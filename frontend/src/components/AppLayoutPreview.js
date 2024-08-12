@@ -17,7 +17,7 @@ import {
 import { I18nProvider } from '@cloudscape-design/components/i18n';
 import messages from '@cloudscape-design/components/i18n/messages/all.en';
 import { useNavigate } from 'react-router-dom';
-import BoardContainer from './BoardContainer';
+import Home from './Home';
 
 const LOCALE = 'en';
 
@@ -25,45 +25,38 @@ function AppLayoutPreview() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch user authentication status and user info
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Add withCredentials: true to include cookies in the request
         const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/check-auth`, { withCredentials: true });
-        console.log(response);
-        if (response.data.authenticated) {
-          setUser(response.data.username);
-        } else {
-          navigate('/login');
-        }
+        setUser(response.data.username);
       } catch (error) {
-        console.error('Authentication check failed:', error);
+        console.error('Error checking authentication:', error);
         navigate('/login');
       }
     };
-
     checkAuth();
   }, [navigate]);
 
-  // Handle logout
   const handleLogout = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/logout`);
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/logout`, {}, { withCredentials: true });
+      setUser(null);
       navigate('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Error logging out:', error);
     }
   };
 
   return (
-    <I18nProvider locale={LOCALE} messages={[messages]}>
+    <I18nProvider messages={[messages]} locale={LOCALE}>
       <AppLayout
         breadcrumbs={
           <BreadcrumbGroup
             items={[
               { text: 'Home', href: '#' },
-              { text: 'Service', href: '#' },
+              { text: 'Path', href: '#' },
+              { text: 'Path 3', href: '#' },
             ]}
           />
         }
@@ -109,7 +102,7 @@ function AppLayoutPreview() {
           >
             <TextContent>
               <h2>Welcome, {user || 'Guest'}!</h2>
-              <BoardContainer />
+              <Home />
             </TextContent>
             <SplitPanel header="Split panel header">Split panel content</SplitPanel>
           </ContentLayout>
